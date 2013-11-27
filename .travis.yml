@@ -2,7 +2,10 @@ language: node_js
 node_js:
 - '0.10'
 cache:
-- apt
+  apt: true
+  directories:
+  - $HOME/.titanium
+  - $HOME/.nvm
 env:
   global:
   # TI_USER and TI_PASS
