@@ -10,9 +10,8 @@ env:
 before_script:
 - npm install -g alloy glob jade coffee-script
 - npm install -g 'git://github.com/appcelerator/titanium.git#642155f'
-- ti sdk install -b 3_2_X -d 3.2.0.v20131126111643
 - titanium login "$TI_USER" "$TI_PASS"
-- titanium sdk install 3.2.0.v20131126111643
+- ti sdk install -b 3_2_X -d 3.2.0.v20131126111643
 - sudo apt-get update
 - sudo apt-get install openjdk-7-jdk
 - titanium build -p mobileweb --sdk 3.2.0.v20131126111643
