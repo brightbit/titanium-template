@@ -1,0 +1,89 @@
+var changeFormat, coffee, coffee2js, coffee2tss, coffeeFiles, fs, glob, jade, jade2xml, jadeFiles, styleFiles;
+
+fs = require('fs');
+
+glob = require('glob');
+
+jade = require('jade');
+
+coffee = require("coffee-script");
+
+jadeFiles = glob.sync("./**views/**/*.jade");
+
+if (!jadeFiles.count) {
+  jadeFiles = glob.sync("./app/**views/**/*.jade");
+}
+
+styleFiles = glob.sync("./**styles/**/*.tss.coffee");
+
+if (!styleFiles.count) {
+  styleFiles = glob.sync("./app/**styles/**/*.tss.coffee");
+}
+
+coffeeFiles = glob.sync("./**controllers/**/*.coffee");
+
+if (!coffeeFiles.count) {
+  coffeeFiles = glob.sync("./app/**controllers/**/*.coffee");
+}
+
+jade2xml = function(data) {
+  return jade.compile(data, {
+    pretty: true
+  })(this);
+};
+
+coffee2js = function(data) {
+  return coffee.compile(data, {
+    bare: true
+  });
+};
+
+coffee2tss = function(data) {
+  return coffee2js(data).split('\n').slice(3, -2).join('\n');
+};
+
+changeFormat = function(filename, from, to, transform) {
+  var content, data, newFilename;
+  newFilename = filename.replace(from, to);
+  data = fs.readFileSync(filename, 'utf8');
+  content = transform(data);
+  return fs.writeFileSync(newFilename, content, 'utf8');
+};
+
+task('pre:compile', function(event, logger) {
+  var coffeeFile, jadeFile, styleFile, _i, _j, _k, _len, _len1, _len2;
+  logger.info('----- COFFEE/JADE PREPROCESSOR -----');
+  for (_i = 0, _len = jadeFiles.length; _i < _len; _i++) {
+    jadeFile = jadeFiles[_i];
+    changeFormat(jadeFile, '.jade', '.xml', jade2xml);
+  }
+  for (_j = 0, _len1 = coffeeFiles.length; _j < _len1; _j++) {
+    coffeeFile = coffeeFiles[_j];
+    changeFormat(coffeeFile, '.coffee', '.js', coffee2js);
+  }
+  for (_k = 0, _len2 = styleFiles.length; _k < _len2; _k++) {
+    styleFile = styleFiles[_k];
+    changeFormat(styleFile, '.tss.coffee', '.tss', coffee2tss);
+  }
+  logger.debug("" + jadeFiles.length + " jade files compiles");
+  logger.debug("" + styleFiles.length + " style files compiles");
+  return logger.debug("" + coffeeFiles.length + " coffee files compiles");
+});
+
+task('post:compile', function(event, logger) {
+  var coffeeFile, jadeFile, styleFile, _i, _j, _k, _len, _len1, _len2;
+  logger.info('----- COFFEE/JADE POSTPROCESSOR -----');
+  for (_i = 0, _len = jadeFiles.length; _i < _len; _i++) {
+    jadeFile = jadeFiles[_i];
+    fs.unlinkSync(jadeFile.replace('.jade', '.xml'));
+  }
+  for (_j = 0, _len1 = coffeeFiles.length; _j < _len1; _j++) {
+    coffeeFile = coffeeFiles[_j];
+    fs.unlinkSync(coffeeFile.replace('.coffee', '.js'));
+  }
+  for (_k = 0, _len2 = styleFiles.length; _k < _len2; _k++) {
+    styleFile = styleFiles[_k];
+    fs.unlinkSync(styleFile.replace('.tss.coffee', '.tss'));
+  }
+  return fs.writeFileSync(event.dir.project + '/app/views/index.xml', '<Alloy />', 'utf8');
+});
