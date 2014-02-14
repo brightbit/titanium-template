@@ -1,6 +1,10 @@
-var changeFormat, coffee, coffee2js, coffee2tss, coffeeFiles, fs, glob, jade, jade2xml, jadeFiles, styleFiles;
+var changeFormat, coffee, coffee2js, coffee2tss, coffeeFiles, exec, fs, glob, jade, jade2xml, jadeFiles, migrationFiles, modelFiles, path, specFiles, styleFiles;
 
 fs = require('fs');
+
+path = require('path');
+
+exec = require('child_process').exec;
 
 glob = require('glob');
 
@@ -8,23 +12,17 @@ jade = require('jade');
 
 coffee = require("coffee-script");
 
-jadeFiles = glob.sync("./**views/**/*.jade");
+jadeFiles = glob.sync("./app/**views/**/*.jade");
 
-if (!jadeFiles.count) {
-  jadeFiles = glob.sync("./app/**views/**/*.jade");
-}
+specFiles = glob.sync("./spec/**/*.coffee");
 
-styleFiles = glob.sync("./**styles/**/*.tss.coffee");
+coffeeFiles = glob.sync("./app/**controllers/**/*.coffee").concat(glob.sync("./app/alloy.coffee"));
 
-if (!styleFiles.count) {
-  styleFiles = glob.sync("./app/**styles/**/*.tss.coffee");
-}
+styleFiles = glob.sync("./app/**styles/**/*.tss.coffee");
 
-coffeeFiles = glob.sync("./**controllers/**/*.coffee");
+modelFiles = glob.sync("./app/**models/**/*.coffee");
 
-if (!coffeeFiles.count) {
-  coffeeFiles = glob.sync("./app/**controllers/**/*.coffee");
-}
+migrationFiles = glob.sync("./app/**migrations/**/*.coffee");
 
 jade2xml = function(data) {
   return jade.compile(data, {
@@ -51,39 +49,84 @@ changeFormat = function(filename, from, to, transform) {
 };
 
 task('pre:compile', function(event, logger) {
-  var coffeeFile, jadeFile, styleFile, _i, _j, _k, _len, _len1, _len2;
+  var coffeeFile, destMigrationFile, destModelFile, jadeFile, migrationFile, migrationTmpDir, modelFile, modelTmpDir, specFile, styleFile, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o;
   logger.info('----- COFFEE/JADE PREPROCESSOR -----');
   for (_i = 0, _len = jadeFiles.length; _i < _len; _i++) {
     jadeFile = jadeFiles[_i];
     changeFormat(jadeFile, '.jade', '.xml', jade2xml);
   }
-  for (_j = 0, _len1 = coffeeFiles.length; _j < _len1; _j++) {
-    coffeeFile = coffeeFiles[_j];
+  for (_j = 0, _len1 = specFiles.length; _j < _len1; _j++) {
+    specFile = specFiles[_j];
+    changeFormat(specFile, '.coffee', '.js', coffee2js);
+  }
+  for (_k = 0, _len2 = coffeeFiles.length; _k < _len2; _k++) {
+    coffeeFile = coffeeFiles[_k];
     changeFormat(coffeeFile, '.coffee', '.js', coffee2js);
   }
-  for (_k = 0, _len2 = styleFiles.length; _k < _len2; _k++) {
-    styleFile = styleFiles[_k];
+  for (_l = 0, _len3 = styleFiles.length; _l < _len3; _l++) {
+    styleFile = styleFiles[_l];
     changeFormat(styleFile, '.tss.coffee', '.tss', coffee2tss);
   }
+  for (_m = 0, _len4 = modelFiles.length; _m < _len4; _m++) {
+    modelFile = modelFiles[_m];
+    changeFormat(modelFile, '.coffee', '.js', coffee2js);
+  }
+  modelTmpDir = './tmp/cached_coffee_models';
+  exec("mkdir -p " + modelTmpDir, function() {});
+  for (_n = 0, _len5 = modelFiles.length; _n < _len5; _n++) {
+    modelFile = modelFiles[_n];
+    changeFormat(modelFile, '.coffee', '.js', coffee2js);
+    destModelFile = "" + modelTmpDir + "/" + (path.basename(modelFile));
+    fs.renameSync(modelFile, destModelFile);
+  }
+  migrationTmpDir = './tmp/cached_coffee_migrations';
+  exec("mkdir -p " + migrationTmpDir, function() {});
+  for (_o = 0, _len6 = migrationFiles.length; _o < _len6; _o++) {
+    migrationFile = migrationFiles[_o];
+    changeFormat(migrationFile, '.coffee', '.js', coffee2js);
+    destMigrationFile = "" + migrationTmpDir + "/" + (path.basename(migrationFile));
+    fs.renameSync(migrationFile, destMigrationFile);
+  }
   logger.debug("" + jadeFiles.length + " jade files compiles");
+  logger.debug("" + specFiles.length + " spec files compiles");
+  logger.debug("" + coffeeFiles.length + " coffee files compiles");
   logger.debug("" + styleFiles.length + " style files compiles");
-  return logger.debug("" + coffeeFiles.length + " coffee files compiles");
+  logger.debug("" + modelFiles.length + " model files compiles");
+  return logger.debug("" + migrationFiles.length + " migration files compiles");
 });
 
 task('post:compile', function(event, logger) {
-  var coffeeFile, jadeFile, styleFile, _i, _j, _k, _len, _len1, _len2;
+  var coffeeFile, jadeFile, migrationFile, migrationTmpDir, modelFile, modelTmpDir, specFile, styleFile, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _results;
   logger.info('----- COFFEE/JADE POSTPROCESSOR -----');
   for (_i = 0, _len = jadeFiles.length; _i < _len; _i++) {
     jadeFile = jadeFiles[_i];
     fs.unlinkSync(jadeFile.replace('.jade', '.xml'));
   }
-  for (_j = 0, _len1 = coffeeFiles.length; _j < _len1; _j++) {
-    coffeeFile = coffeeFiles[_j];
+  for (_j = 0, _len1 = specFiles.length; _j < _len1; _j++) {
+    specFile = specFiles[_j];
+    fs.unlinkSync(specFile.replace('.coffee', '.js'));
+  }
+  for (_k = 0, _len2 = coffeeFiles.length; _k < _len2; _k++) {
+    coffeeFile = coffeeFiles[_k];
     fs.unlinkSync(coffeeFile.replace('.coffee', '.js'));
   }
-  for (_k = 0, _len2 = styleFiles.length; _k < _len2; _k++) {
-    styleFile = styleFiles[_k];
+  for (_l = 0, _len3 = styleFiles.length; _l < _len3; _l++) {
+    styleFile = styleFiles[_l];
     fs.unlinkSync(styleFile.replace('.tss.coffee', '.tss'));
   }
-  return fs.writeFileSync(event.dir.project + '/app/views/index.xml', '<Alloy />', 'utf8');
+  fs.writeFileSync(event.dir.project + '/app/views/index.xml', '<Alloy />', 'utf8');
+  modelTmpDir = 'tmp/cached_coffee_models';
+  for (_m = 0, _len4 = modelFiles.length; _m < _len4; _m++) {
+    modelFile = modelFiles[_m];
+    fs.unlinkSync(modelFile.replace('.coffee', '.js'));
+    fs.renameSync("" + modelTmpDir + "/" + (path.basename(modelFile)), modelFile, function() {});
+  }
+  migrationTmpDir = 'tmp/cached_coffee_migrations';
+  _results = [];
+  for (_n = 0, _len5 = migrationFiles.length; _n < _len5; _n++) {
+    migrationFile = migrationFiles[_n];
+    fs.unlinkSync(migrationFile.replace('.coffee', '.js'));
+    _results.push(fs.renameSync("" + migrationTmpDir + "/" + (path.basename(migrationFile)), migrationFile, function() {}));
+  }
+  return _results;
 });

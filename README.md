@@ -1,11 +1,10 @@
 # Brightbit's Titanium Template
 
 # Ti Setup
-Due to a bug in Ti 3.1.3 and Mavericks, 3.2.0 will need to be installed (see [this ti bug](https://jira.appcelerator.org/browse/TIMOB-15569)):
+Install Ti 3.2.1.GA
 ```
-sudo npm uninstall -g titanium
-npm install -g 'git://github.com/appcelerator/titanium.git#642155f'
-ti sdk install -b 3_2_X -d 3.2.0.v20131126111643
+npm install -g titanium
+ti sdk install -d 3.2.1.GA
 ```
 You will also need to install glob, jade and coffee-script:
 ```
